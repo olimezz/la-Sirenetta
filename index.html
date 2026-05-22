@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Tavoli - La Sirenetta</title>
+    <meta name="description" content="Gestione tavoli e timer per La Sirenetta">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-content">
+                <h1>La Sirenetta</h1>
+                <p>Gestione Timer Tavoli</p>
+            </div>
+            <div class="header-stats">
+                <div class="stat-badge"><span id="active-timers">0</span> Attivi</div>
+            </div>
+        </header>
+
+        <main class="tables-grid" id="tables-container">
+            <!-- Tables will be injected here by JavaScript -->
+        </main>
+    </div>
+
+    <!-- Template for a table card -->
+    <template id="table-template">
+        <div class="table-card" data-status="idle">
+            <div class="card-glow"></div>
+            <div class="card-header">
+                <h2 class="table-number">Tavolo <span class="num"></span></h2>
+                <div class="status-indicator"></div>
+            </div>
+            
+            <div class="card-body">
+                <div class="input-group">
+                    <input type="text" class="customer-name" placeholder="Nome cliente..." autocomplete="off">
+                </div>
+                
+                <div class="timer-display">
+                    <div class="time-ring">
+                        <svg width="120" height="120" viewBox="0 0 120 120">
+                            <circle class="ring-bg" cx="60" cy="60" r="54"></circle>
+                            <circle class="ring-progress" cx="60" cy="60" r="54"></circle>
+                        </svg>
+                        <div class="time-text">00:00</div>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn btn-15" data-time="15">15 Min</button>
+                    <button class="btn btn-20" data-time="20">20 Min</button>
+                    <button class="btn btn-reset hidden">Reset</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="app.js"></script>
+</body>
+</html>
