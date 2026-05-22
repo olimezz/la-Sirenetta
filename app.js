@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('tables-container');
     const template = document.getElementById('table-template');
     const activeTimersBadge = document.getElementById('active-timers');
+    const finishedContainer = document.getElementById('finished-tables-container');
     
     // State management for all tables
     const tables = [];
@@ -24,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const timeText = card.querySelector('.time-text');
         const progressRing = card.querySelector('.ring-progress');
         
+        const btn10s = card.querySelector('.btn-10s');
         const btn15 = card.querySelector('.btn-15');
         const btn20 = card.querySelector('.btn-20');
         const btnReset = card.querySelector('.btn-reset');
@@ -36,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
             card,
             timeText,
             progressRing,
+            btn10s,
             btn15,
             btn20,
             btnReset,
@@ -49,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tables.push(table);
 
         // Event listeners
+        btn10s.addEventListener('click', () => startTimer(table, 10));
         btn15.addEventListener('click', () => startTimer(table, 15 * 60));
         btn20.addEventListener('click', () => startTimer(table, 20 * 60));
         btnReset.addEventListener('click', () => resetTimer(table));
@@ -64,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
         table.endTime = Date.now() + (seconds * 1000);
         
         // Update UI state
+        table.btn10s.classList.add('hidden');
         table.btn15.classList.add('hidden');
         table.btn20.classList.add('hidden');
         table.btnReset.classList.remove('hidden');
@@ -71,6 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
         table.status = 'active';
         updateCardUI(table);
         updateActiveCount();
+        sortTables();
 
         // Timer Loop
         table.interval = setInterval(() => {
@@ -82,8 +88,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // Status updates
             if (remaining === 0) {
                 clearInterval(table.interval);
-                table.status = 'danger';
+                table.status = 'finished';
+                playAlarmSound();
+                table.card.remove();
+                createFinishedChip(table);
                 updateCardUI(table);
+                updateActiveCount();
+                sortTables();
             } else if (remaining <= 60 && table.status !== 'warning') {
                 table.status = 'warning';
                 updateCardUI(table);
@@ -106,6 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
         table.progressRing.style.strokeDashoffset = 0;
         
         table.btnReset.classList.add('hidden');
+        table.btn10s.classList.remove('hidden');
         table.btn15.classList.remove('hidden');
         table.btn20.classList.remove('hidden');
         
@@ -114,6 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         updateCardUI(table);
         updateActiveCount();
+        sortTables();
     }
 
     function updateTimeDisplay(table, remaining) {
@@ -141,5 +154,80 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateActiveCount() {
         const activeCount = tables.filter(t => t.status !== 'idle').length;
         activeTimersBadge.textContent = activeCount;
+    }
+
+    function sortTables() {
+        tables.sort((a, b) => {
+            if (a.status === 'idle' && b.status === 'idle') {
+                return a.id - b.id;
+            }
+            if (a.status === 'idle') return 1;
+            if (b.status === 'idle') return -1;
+            
+            return a.endTime - b.endTime;
+        });
+
+        tables.forEach(table => {
+            if (table.status !== 'finished') {
+                container.appendChild(table.card);
+            }
+        });
+    }
+
+    function createFinishedChip(table) {
+        if (document.getElementById(`chip-${table.id}`)) return;
+
+        const chip = document.createElement('div');
+        chip.className = 'finished-chip';
+        chip.id = `chip-${table.id}`;
+        
+        const label = document.createElement('span');
+        label.textContent = `Tavolo ${table.id}`;
+        
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'chip-close';
+        closeBtn.innerHTML = '&times;';
+        
+        closeBtn.addEventListener('click', () => {
+            chip.remove();
+            resetTimer(table);
+        });
+        
+        chip.appendChild(label);
+        chip.appendChild(closeBtn);
+        finishedContainer.appendChild(chip);
+    }
+
+    function playAlarmSound() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Riproduce 4 gruppi di 4 bip (stile vera sveglia digitale, dura circa 5.5 secondi)
+            for (let group = 0; group < 4; group++) {
+                for (let i = 0; i < 4; i++) {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    
+                    osc.type = 'square';
+                    osc.frequency.value = 800;
+                    
+                    const startTime = audioCtx.currentTime + (group * 1.5) + (i * 0.25);
+                    const duration = 0.12;
+                    
+                    gain.gain.setValueAtTime(0, startTime);
+                    gain.gain.linearRampToValueAtTime(0.3, startTime + 0.01);
+                    gain.gain.setValueAtTime(0.3, startTime + duration - 0.01);
+                    gain.gain.linearRampToValueAtTime(0, startTime + duration);
+                    
+                    osc.start(startTime);
+                    osc.stop(startTime + duration);
+                }
+            }
+        } catch (e) {
+            console.log('Audio API non supportata', e);
+        }
     }
 });
