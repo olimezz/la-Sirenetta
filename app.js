@@ -5,6 +5,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeTimersBadge = document.getElementById('active-timers');
     const finishedContainer = document.getElementById('finished-tables-container');
     
+    let audioCtx = null;
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            gain.gain.value = 0;
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(0);
+            osc.stop(0.001);
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    // Sblocca l'audio al primo tocco
+    document.addEventListener('click', initAudio, { once: true });
+    document.addEventListener('touchstart', initAudio, { once: true });
+
     // State management for all tables
     const tables = [];
     const CIRCUMFERENCE = 2 * Math.PI * 54; // r=54 for the SVG circle
@@ -61,6 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function startTimer(table, seconds) {
+        initAudio(); // Riprende l'audio context durante l'interazione utente
         // Clear existing interval if any
         if (table.interval) clearInterval(table.interval);
 
@@ -200,7 +222,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function playAlarmSound() {
         try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (!audioCtx) initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             
             // Riproduce 4 gruppi di 4 bip (stile vera sveglia digitale, dura circa 5.5 secondi)
             for (let group = 0; group < 4; group++) {
