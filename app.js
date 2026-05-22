@@ -6,25 +6,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const finishedContainer = document.getElementById('finished-tables-container');
     
     let audioCtx = null;
+    let keepAliveOsc = null;
+    
     function initAudio() {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        
         if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            gain.gain.value = 0;
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(0);
-            osc.stop(0.001);
+            audioCtx = new AudioContext();
+            
+            // Crea un oscillatore silenzioso infinito per impedire a iOS di sospendere l'audio
+            keepAliveOsc = audioCtx.createOscillator();
+            const keepAliveGain = audioCtx.createGain();
+            keepAliveGain.gain.value = 0; // Silenzio assoluto
+            keepAliveOsc.connect(keepAliveGain);
+            keepAliveGain.connect(audioCtx.destination);
+            keepAliveOsc.start();
         }
+        
         if (audioCtx.state === 'suspended') {
             audioCtx.resume();
         }
     }
 
-    // Sblocca l'audio al primo tocco
-    document.addEventListener('click', initAudio, { once: true });
-    document.addEventListener('touchstart', initAudio, { once: true });
+    // Assicurati di sbloccare l'audio in continuazione ad ogni tocco
+    document.addEventListener('click', initAudio);
+    document.addEventListener('touchstart', initAudio);
 
     // State management for all tables
     const tables = [];
