@@ -6,26 +6,47 @@ document.addEventListener('DOMContentLoaded', () => {
     const finishedContainer = document.getElementById('finished-tables-container');
     
     let audioCtx = null;
-    let keepAliveOsc = null;
+    let bgAudio = null;
+    let wakeLock = null;
+
+    async function requestWakeLock() {
+        try {
+            if ('wakeLock' in navigator) {
+                wakeLock = await navigator.wakeLock.request('screen');
+            }
+        } catch (err) {
+            console.log('Wake Lock error:', err);
+        }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            requestWakeLock();
+        }
+    });
     
     function initAudio() {
+        requestWakeLock();
+        
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (!AudioContext) return;
         
         if (!audioCtx) {
             audioCtx = new AudioContext();
-            
-            // Crea un oscillatore silenzioso infinito per impedire a iOS di sospendere l'audio
-            keepAliveOsc = audioCtx.createOscillator();
-            const keepAliveGain = audioCtx.createGain();
-            keepAliveGain.gain.value = 0; // Silenzio assoluto
-            keepAliveOsc.connect(keepAliveGain);
-            keepAliveGain.connect(audioCtx.destination);
-            keepAliveOsc.start();
         }
         
         if (audioCtx.state === 'suspended') {
             audioCtx.resume();
+        }
+
+        // HACK per iOS e schermi bloccati: riproduce un audio HTML5 silenzioso in loop.
+        // Questo impedisce al browser di sospendere l'esecuzione JavaScript (i timer).
+        if (!bgAudio) {
+            bgAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABmYWN0BAAAAAAAAABkYXRhAAAAAA==');
+            bgAudio.loop = true;
+            bgAudio.play().catch(e => console.log(e));
+        } else if (bgAudio.paused) {
+            bgAudio.play().catch(e => console.log(e));
         }
     }
 
